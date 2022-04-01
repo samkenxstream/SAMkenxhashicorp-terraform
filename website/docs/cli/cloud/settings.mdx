@@ -91,6 +91,8 @@ Alternatively, the `cloud` block can be configured with the following environmen
 
 - `TF_HOSTNAME` - The hostname of a Terraform Enterprise installation. Serves as a fallback if `hostname` is not specified in the cloud configuration. If both are specified, the configuration takes precendence. 
 
+- `TF_WORKSPACE` - The workspace to select from the available set. The `cloud` block interprets this variable as the `name` value of the `workspaces` attribute allowing you to omit this attribute completely. It does not alter the existing behavior of how Terraform interprets this variable. [Read more about TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace)
+
 ## Excluding Files from Upload with .terraformignore
 
 When executing a remote `plan` or `apply` in a [CLI-driven run](/cloud-docs/run/cli),
