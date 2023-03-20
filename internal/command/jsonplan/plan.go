@@ -39,9 +39,6 @@ const (
 	ResourceInstanceDeleteBecauseNoMoveTarget     = "delete_because_no_move_target"
 	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
 	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
-
-	ManagedResourceMode = "managed"
-	DataResourceMode    = "data"
 )
 
 // Plan is the top-level representation of the json format of a plan. It includes
@@ -332,7 +329,16 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
 	var ret []ResourceChange
 
-	for _, rc := range resources {
+	var sortedResources []*plans.ResourceInstanceChangeSrc
+	sortedResources = append(sortedResources, resources...)
+	sort.Slice(sortedResources, func(i, j int) bool {
+		if !sortedResources[i].Addr.Equal(sortedResources[j].Addr) {
+			return sortedResources[i].Addr.Less(sortedResources[j].Addr)
+		}
+		return sortedResources[i].DeposedKey < sortedResources[j].DeposedKey
+	})
+
+	for _, rc := range sortedResources {
 		var r ResourceChange
 		addr := rc.Addr
 		r.Address = addr.String()
@@ -448,9 +454,9 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 
 		switch addr.Resource.Resource.Mode {
 		case addrs.ManagedResourceMode:
-			r.Mode = ManagedResourceMode
+			r.Mode = jsonstate.ManagedResourceMode
 		case addrs.DataResourceMode:
-			r.Mode = DataResourceMode
+			r.Mode = jsonstate.DataResourceMode
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
 		}
@@ -493,10 +499,6 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 		ret = append(ret, r)
 
 	}
-
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Address < ret[j].Address
-	})
 
 	return ret, nil
 }

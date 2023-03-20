@@ -1,8 +1,6 @@
 package jsonformat
 
 import (
-	"sort"
-
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
@@ -43,7 +41,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			continue
 		}
 
-		schema := plan.GetSchema(drift)
+		schema := plan.getSchema(drift)
 		diffs.drift = append(diffs.drift, diff{
 			change: drift,
 			diff:   differ.FromJsonChange(drift.Change, relevantAttrs).ComputeDiffForBlock(schema.Block),
@@ -51,7 +49,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	}
 
 	for _, change := range plan.ResourceChanges {
-		schema := plan.GetSchema(change)
+		schema := plan.getSchema(change)
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
 			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),
@@ -61,20 +59,6 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	for key, output := range plan.OutputChanges {
 		diffs.outputs[key] = differ.FromJsonChange(output, attribute_path.AlwaysMatcher()).ComputeDiffForOutput()
 	}
-
-	less := func(drs []diff) func(i, j int) bool {
-		return func(i, j int) bool {
-			iA := drs[i].change.Address
-			jA := drs[j].change.Address
-			if iA == jA {
-				return drs[i].change.Deposed < drs[j].change.Deposed
-			}
-			return iA < jA
-		}
-	}
-
-	sort.Slice(diffs.drift, less(diffs.drift))
-	sort.Slice(diffs.changes, less(diffs.changes))
 
 	return diffs
 }
