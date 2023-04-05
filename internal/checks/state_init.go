@@ -42,8 +42,24 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 
 		st := &configCheckableState{}
 
-		st.checkTypes = map[addrs.CheckType]int{
+		st.checkTypes = map[addrs.CheckRuleType]int{
 			addrs.OutputPrecondition: ct,
+		}
+
+		into.Put(addr, st)
+	}
+
+	for _, c := range cfg.Module.Checks {
+		addr := c.Addr().InModule(moduleAddr)
+
+		st := &configCheckableState{
+			checkTypes: map[addrs.CheckRuleType]int{
+				addrs.CheckAssertion: len(c.Asserts),
+			},
+		}
+
+		if c.DataResource != nil {
+			st.checkTypes[addrs.CheckDataResource] = 1
 		}
 
 		into.Put(addr, st)
@@ -63,7 +79,7 @@ func collectInitialStatusForResource(into addrs.Map[addrs.ConfigCheckable, *conf
 	}
 
 	st := &configCheckableState{
-		checkTypes: make(map[addrs.CheckType]int),
+		checkTypes: make(map[addrs.CheckRuleType]int),
 	}
 
 	if ct := len(rc.Preconditions); ct > 0 {
